@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.design.warehousemanagement.service.LoginCaptchaService">
+
+    <resultMap id="BaseResultMap" type="com.design.warehousemanagement.pojo.LoginCaptcha">
+            <id property="id" column="id" />
+            <result property="uuid" column="uuid" />
+            <result property="answer" column="answer" />
+            <result property="expiredTime" column="expired_time" />
+            <result property="used" column="used" />
+            <result property="createdAt" column="created_at" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,uuid,answer,expired_time,used,created_at,
+        captcha_image
+    </sql>
+    <insert id="saveCaptcha">
+        INSERT INTO login_captcha (uuid, captcha_image, answer, expired_time, used)
+        VALUES (#{dto.uuid}, #{dto.captchaImage}, #{dto.answer}, NOW() + INTERVAL 5 MINUTE, 0)
+    </insert>
+    <update id="markAsUsed">
+        UPDATE login_captcha SET used = 1 WHERE uuid = #{uuid}
+    </update>
+    <select id="getCaptchaByUuid" resultType="com.design.warehousemanagement.pojo.dto.CaptchaDTO">
+        SELECT * FROM login_captcha WHERE uuid = #{uuid} AND used = 0 AND expired_time > NOW()
+    </select>
+</mapper>

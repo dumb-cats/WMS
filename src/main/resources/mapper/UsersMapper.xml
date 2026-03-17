@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.design.warehousemanagement.service.UsersService">
+
+    <select id="selectUsersByName" resultType="com.design.warehousemanagement.pojo.Users">
+        SELECT
+        user_id,
+        username,
+        password,
+        name,
+        gender,
+        id_card_number,
+        phone_number,
+        email,
+        address,
+        date_of_birth,
+        is_verified,
+        created_at,
+        updated_at,
+        role_id
+        FROM users
+        <where>
+            <if test="roleId != null">
+                role_id = #{roleId}
+            </if>
+            <!-- 当 name 不为空时，添加模糊查询条件 -->
+            <if test="name != null and name != ''">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+        </where>
+        order by role_id desc
+    </select>
+    <select id="existsByUsername" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM users WHERE username = #{username}
+    </select>
+    <select id="selectUsersByInstructorIdWithKeyword" resultType="com.design.warehousemanagement.pojo.dto.UserInfoDTO">
+        SELECT u.user_id AS userId,
+        u.username,
+        u.name,
+        u.gender,
+        u.id_card_number AS idCardNumber,
+        u.phone_number AS phoneNumber,
+        u.email,
+        u.address,
+        u.date_of_birth AS dateOfBirth,
+        u.is_verified AS isVerified,
+        u.created_at AS createdAt,
+        u.updated_at AS updatedAt,
+        lp.course_name AS courseName,
+        lp.completed_hours AS completedHours,
+        lp.total_hours AS totalHours
+        FROM users u
+        INNER JOIN registrations r ON u.user_id = r.user_id
+        INNER JOIN student_instructor_assignments i ON r.registration_id = i.registration_id
+        INNER JOIN learning_progress lp ON r.registration_id = lp.registration_id
+        WHERE i.instructor_id = #{instructorId} AND i.status = 2
+
+        <!-- 模糊查询 -->
+        <if test="keyword != null and keyword != ''">
+            AND (u.name LIKE CONCAT('%', #{keyword}, '%')
+            OR u.phone_number LIKE CONCAT('%', #{keyword}, '%')
+            OR u.id_card_number LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </select>
+</mapper>
