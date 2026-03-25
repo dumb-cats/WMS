@@ -1,10 +1,10 @@
 package com.design.warehousemanagement.controller.user;
 
 import com.design.warehousemanagement.common.Result;
-import com.design.warehousemanagement.pojo.dto.CaptchaDTO;
 import com.design.warehousemanagement.enums.StatusCode;
 import com.design.warehousemanagement.mapper.user.LoginCaptchaMapper;
 import com.design.warehousemanagement.pojo.Users;
+import com.design.warehousemanagement.pojo.dto.CaptchaDTO;
 import com.design.warehousemanagement.pojo.dto.LoginRequestDTO;
 import com.design.warehousemanagement.pojo.dto.ResetPasswordDTO;
 import com.design.warehousemanagement.pojo.dto.UserDTO;
@@ -67,7 +67,7 @@ public class UserController {
             @RequestParam(required = false) Integer roleId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return userService.getUsersByName(name, page, size,roleId);
+        return userService.getUsersByName(name, page, size, roleId);
     }
 
     @Operation(summary = "登录")
