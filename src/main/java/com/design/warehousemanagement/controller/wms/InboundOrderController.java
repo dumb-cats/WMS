@@ -8,10 +8,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "入库管理")
 @RestController
@@ -27,9 +30,15 @@ public class InboundOrderController {
         return Result.success(inboundOrderService.createOrder(request));
     }
 
-    @Operation(summary = "批量导入入库单")
+    @Operation(summary = "批量导入入库单（JSON）")
     @PostMapping("/batch-import")
     public Result batchImport(@Valid @RequestBody InboundBatchImportRequest request) {
         return Result.success(inboundOrderService.batchImport(request));
+    }
+
+    @Operation(summary = "批量导入入库单（CSV文件）")
+    @PostMapping(value = "/batch-import/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result batchImportByFile(@RequestParam("file") MultipartFile file) {
+        return Result.success(inboundOrderService.batchImportFromCsv(file));
     }
 }

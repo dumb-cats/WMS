@@ -32,3 +32,12 @@
 2. 增加“上架完成”接口：更新 `wms_bin` 占用、写入 `wms_inventory` 与 `wms_inventory_movement`。
 3. 增加失败补偿：批量导入按行事务（REQUIRES_NEW）+ 失败回执下载。
 4. 增加 OpenAPI 与契约测试：保障前后端/外部系统联调质量。
+
+## 5. 批量导入方式（已实现）
+
+- JSON 导入：`POST /wms/inbound-orders/batch-import`。
+- 文件导入：`POST /wms/inbound-orders/batch-import/file`（`multipart/form-data`，字段名 `file`）。
+- CSV 表头固定为：
+  `sourceNo,orderType,supplierName,contactPerson,contactPhone,planTime,remark,modelCode,batchNo,preferredBinCode,plannedQuantity`
+- 规则：同一 `sourceNo + orderType + supplierName` 会聚合为一张入库单，多行会形成多条明细。
+- `planTime` 格式：`yyyy-MM-dd HH:mm:ss`。
