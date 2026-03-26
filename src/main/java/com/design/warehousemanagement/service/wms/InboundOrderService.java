@@ -12,5 +12,5 @@ public interface InboundOrderService {
 
     InboundBatchImportResultVO batchImport(InboundBatchImportRequest request);
 
-    InboundBatchImportResultVO batchImportFromCsv(MultipartFile file);
+    InboundBatchImportResultVO batchImportFromFile(MultipartFile file);
 }

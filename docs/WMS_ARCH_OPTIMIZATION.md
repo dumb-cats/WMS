@@ -37,7 +37,8 @@
 
 - JSON 导入：`POST /wms/inbound-orders/batch-import`。
 - 文件导入：`POST /wms/inbound-orders/batch-import/file`（`multipart/form-data`，字段名 `file`）。
-- CSV 表头固定为：
+- 文件导入使用 **EasyExcel** 统一解析，支持 `csv/xls/xlsx`。
+- 表头固定为：
   `sourceNo,orderType,supplierName,contactPerson,contactPhone,planTime,remark,modelCode,batchNo,preferredBinCode,plannedQuantity`
 - 规则：同一 `sourceNo + orderType + supplierName` 会聚合为一张入库单，多行会形成多条明细。
 - `planTime` 格式：`yyyy-MM-dd HH:mm:ss`。

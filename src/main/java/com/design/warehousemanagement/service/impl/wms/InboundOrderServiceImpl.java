@@ -1,7 +1,10 @@
 package com.design.warehousemanagement.service.impl.wms;
 
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.support.ExcelTypeEnum;
 import com.design.warehousemanagement.mapper.wms.InboundOrderMapper;
 import com.design.warehousemanagement.pojo.dto.inbound.InboundBatchImportRequest;
+import com.design.warehousemanagement.pojo.dto.inbound.InboundImportRowDTO;
 import com.design.warehousemanagement.pojo.dto.inbound.InboundOrderCreateRequest;
 import com.design.warehousemanagement.pojo.dto.inbound.InboundOrderDetailCreateRequest;
 import com.design.warehousemanagement.pojo.vo.inbound.*;
@@ -12,10 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -69,13 +69,13 @@ public class InboundOrderServiceImpl implements InboundOrderService {
     }
 
     @Override
-    public InboundBatchImportResultVO batchImportFromCsv(MultipartFile file) {
+    public InboundBatchImportResultVO batchImportFromFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("导入文件不能为空");
         }
-        List<InboundOrderCreateRequest> orders = parseCsv(file);
+        List<InboundOrderCreateRequest> orders = parseByEasyExcel(file);
         if (orders.isEmpty()) {
-            throw new IllegalArgumentException("CSV未解析到任何有效数据");
+            throw new IllegalArgumentException("导入文件未解析到任何有效数据");
         }
         return doBatchImport(orders);
     }
@@ -100,112 +100,113 @@ public class InboundOrderServiceImpl implements InboundOrderService {
         return new InboundBatchImportResultVO(successOrders.size(), errors.size(), successOrders, errors);
     }
 
-    private List<InboundOrderCreateRequest> parseCsv(MultipartFile file) {
+    private List<InboundOrderCreateRequest> parseByEasyExcel(MultipartFile file) {
+        List<InboundImportRowDTO> rows = readRows(file);
         Map<String, InboundOrderCreateRequest> orderMap = new LinkedHashMap<>();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
 
-            String header = reader.readLine();
-            if (header == null) {
-                return new ArrayList<>();
+        for (int i = 0; i < rows.size(); i++) {
+            int row = i + 2;
+            InboundImportRowDTO rowData = rows.get(i);
+            if (isBlank(rowData.getSupplierName()) && isBlank(rowData.getModelCode())) {
+                continue;
             }
-            validateCsvHeader(header);
 
-            String line;
-            int row = 1;
-            while ((line = reader.readLine()) != null) {
-                row++;
-                if (line.isBlank()) {
-                    continue;
-                }
-                String[] cols = splitCsvLine(line);
-                if (cols.length < 11) {
-                    throw new IllegalArgumentException("CSV第" + row + "行字段不足，至少11列");
-                }
-
-                final int currentRow = row;
-                String sourceNo = trim(cols[0]);
-                Integer orderType = parseInteger(cols[1], "orderType", currentRow);
-                String supplierName = trim(cols[2]);
-                if (supplierName == null || supplierName.isEmpty()) {
-                    throw new IllegalArgumentException("CSV第" + currentRow + "行supplierName不能为空");
-                }
-
-                InboundOrderCreateRequest order = orderMap.computeIfAbsent(buildOrderGroupKey(sourceNo, orderType, supplierName),
-                        k -> buildOrderFromCsv(cols, sourceNo, orderType, supplierName, currentRow));
-
-                InboundOrderDetailCreateRequest detail = new InboundOrderDetailCreateRequest();
-                detail.setModelCode(require(cols[7], "modelCode", currentRow));
-                detail.setBatchNo(trim(cols[8]));
-                detail.setPreferredBinCode(trim(cols[9]));
-                detail.setPlannedQuantity(parseInteger(cols[10], "plannedQuantity", currentRow));
-                if (detail.getPlannedQuantity() <= 0) {
-                    throw new IllegalArgumentException("CSV第" + currentRow + "行plannedQuantity必须大于0");
-                }
-                order.getDetails().add(detail);
+            Integer orderType = rowData.getOrderType();
+            if (orderType == null) {
+                throw new IllegalArgumentException("第" + row + "行 orderType 不能为空");
             }
-        } catch (IOException e) {
-            throw new IllegalStateException("读取CSV失败", e);
+            String supplierName = require(rowData.getSupplierName(), "supplierName", row);
+
+            InboundOrderCreateRequest order = orderMap.computeIfAbsent(
+                    buildOrderGroupKey(rowData.getSourceNo(), orderType, supplierName),
+                    key -> buildOrderFromRow(rowData, row, supplierName, orderType)
+            );
+
+            InboundOrderDetailCreateRequest detail = new InboundOrderDetailCreateRequest();
+            detail.setModelCode(require(rowData.getModelCode(), "modelCode", row));
+            detail.setBatchNo(trim(rowData.getBatchNo()));
+            detail.setPreferredBinCode(trim(rowData.getPreferredBinCode()));
+            if (rowData.getPlannedQuantity() == null || rowData.getPlannedQuantity() <= 0) {
+                throw new IllegalArgumentException("第" + row + "行 plannedQuantity 必须大于0");
+            }
+            detail.setPlannedQuantity(rowData.getPlannedQuantity());
+            order.getDetails().add(detail);
         }
 
         return new ArrayList<>(orderMap.values());
     }
 
-    private InboundOrderCreateRequest buildOrderFromCsv(String[] cols, String sourceNo, Integer orderType,
-                                                        String supplierName, int row) {
+    private List<InboundImportRowDTO> readRows(MultipartFile file) {
+        String filename = file.getOriginalFilename();
+        ExcelTypeEnum excelType = resolveExcelType(filename);
+        try {
+            return EasyExcel.read(file.getInputStream())
+                    .head(InboundImportRowDTO.class)
+                    .excelType(excelType)
+                    .sheet()
+                    .doReadSync();
+        } catch (IOException e) {
+            throw new IllegalStateException("读取导入文件失败", e);
+        }
+    }
+
+    private ExcelTypeEnum resolveExcelType(String filename) {
+        if (filename == null || filename.isBlank()) {
+            throw new IllegalArgumentException("文件名为空，无法识别格式");
+        }
+        String lowerName = filename.toLowerCase();
+        if (lowerName.endsWith(".csv")) {
+            return ExcelTypeEnum.CSV;
+        }
+        if (lowerName.endsWith(".xlsx")) {
+            return ExcelTypeEnum.XLSX;
+        }
+        if (lowerName.endsWith(".xls")) {
+            return ExcelTypeEnum.XLS;
+        }
+        throw new IllegalArgumentException("仅支持 .csv/.xls/.xlsx 文件");
+    }
+
+    private InboundOrderCreateRequest buildOrderFromRow(InboundImportRowDTO rowData, int row,
+                                                        String supplierName, Integer orderType) {
         InboundOrderCreateRequest order = new InboundOrderCreateRequest();
-        order.setSourceNo(sourceNo);
+        order.setSourceNo(trim(rowData.getSourceNo()));
         order.setOrderType(orderType);
         order.setSupplierName(supplierName);
-        order.setContactPerson(trim(cols[3]));
-        order.setContactPhone(trim(cols[4]));
-        String planTime = trim(cols[5]);
-        if (planTime != null && !planTime.isEmpty()) {
+        order.setContactPerson(trim(rowData.getContactPerson()));
+        order.setContactPhone(trim(rowData.getContactPhone()));
+        String planTime = trim(rowData.getPlanTime());
+        if (!isBlank(planTime)) {
             try {
                 order.setPlanTime(LocalDateTime.parse(planTime, CSV_PLAN_TIME_FORMATTER));
             } catch (DateTimeParseException e) {
-                throw new IllegalArgumentException("CSV第" + row + "行planTime格式错误，应为yyyy-MM-dd HH:mm:ss");
+                throw new IllegalArgumentException("第" + row + "行 planTime 格式错误，应为 yyyy-MM-dd HH:mm:ss");
             }
         }
-        order.setRemark(trim(cols[6]));
+        order.setRemark(trim(rowData.getRemark()));
         order.setDetails(new ArrayList<>());
         return order;
     }
 
-    private void validateCsvHeader(String header) {
-        String expected = "sourceNo,orderType,supplierName,contactPerson,contactPhone,planTime,remark,modelCode,batchNo,preferredBinCode,plannedQuantity";
-        if (!expected.equalsIgnoreCase(header.trim())) {
-            throw new IllegalArgumentException("CSV表头不正确，必须为: " + expected);
-        }
-    }
-
-    private String[] splitCsvLine(String line) {
-        return line.split(",", -1);
-    }
-
     private String buildOrderGroupKey(String sourceNo, Integer orderType, String supplierName) {
-        String source = sourceNo == null || sourceNo.isEmpty() ? "NO_SOURCE" : sourceNo;
+        String source = isBlank(sourceNo) ? "NO_SOURCE" : sourceNo.trim();
         return source + "|" + orderType + "|" + supplierName;
     }
 
     private String require(String value, String fieldName, int row) {
         String cleaned = trim(value);
-        if (cleaned == null || cleaned.isEmpty()) {
-            throw new IllegalArgumentException("CSV第" + row + "行" + fieldName + "不能为空");
+        if (isBlank(cleaned)) {
+            throw new IllegalArgumentException("第" + row + "行 " + fieldName + " 不能为空");
         }
         return cleaned;
     }
 
-    private Integer parseInteger(String value, String fieldName, int row) {
-        try {
-            return Integer.parseInt(require(value, fieldName, row));
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("CSV第" + row + "行" + fieldName + "必须为数字");
-        }
-    }
-
     private String trim(String value) {
         return value == null ? null : value.trim();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     private List<InboundOrderDetailInsertVO> buildDetailRows(Long orderId, List<InboundOrderDetailCreateRequest> details) {

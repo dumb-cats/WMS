@@ -36,9 +36,9 @@ public class InboundOrderController {
         return Result.success(inboundOrderService.batchImport(request));
     }
 
-    @Operation(summary = "批量导入入库单（CSV文件）")
+    @Operation(summary = "批量导入入库单（EasyExcel，支持CSV/XLSX）")
     @PostMapping(value = "/batch-import/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result batchImportByFile(@RequestParam("file") MultipartFile file) {
-        return Result.success(inboundOrderService.batchImportFromCsv(file));
+        return Result.success(inboundOrderService.batchImportFromFile(file));
     }
 }
