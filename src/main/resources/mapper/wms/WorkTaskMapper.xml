@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.design.warehousemanagement.mapper.wms.WorkTaskMapper">
+
+    <insert id="insertWorkTask" parameterType="com.design.warehousemanagement.pojo.vo.task.WorkTaskInsertVO">
+        INSERT INTO wms_work_task (
+            task_no,
+            task_type,
+            warehouse_id,
+            inbound_order_id,
+            model_id,
+            motorcycle_id,
+            vin,
+            target_bin_id,
+            task_status,
+            priority,
+            dr,
+            create_by,
+            update_by
+        ) VALUES (
+            #{taskNo},
+            #{taskType},
+            #{warehouseId},
+            #{inboundOrderId},
+            #{modelId},
+            #{motorcycleId},
+            #{vin},
+            #{targetBinId},
+            #{taskStatus},
+            #{priority},
+            0,
+            #{createBy},
+            #{updateBy}
+        )
+    </insert>
+
+    <update id="updateInboundOrderStatusToPending">
+        UPDATE wms_inbound_order
+        SET order_status = CASE WHEN order_status = 0 THEN 1 ELSE order_status END,
+            update_by = #{operator}
+        WHERE id = #{orderId}
+          AND dr = 0
+    </update>
+</mapper>
