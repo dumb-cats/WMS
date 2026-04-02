@@ -1,3 +1,4 @@
+/*
 package com.design.warehousemanagement.util;
 
 import com.aliyun.oss.OSS;
@@ -11,9 +12,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
 
+*/
 /**
  * 阿里云OSS对象存储服务工具类
- */
+ *//*
+
 @Slf4j
 @Component
 public class AliOSSUtils {
@@ -29,9 +32,11 @@ public class AliOSSUtils {
     @Value("${aliyun.oss.bucketName}")
     private String bucketName;
 
-    /**
+    */
+/**
      * 实现上传图片到OSS
-     */
+     *//*
+
     public String upload(MultipartFile file) throws IOException {
         // 获取上传的文件的输入流
         InputStream inputStream = file.getInputStream();
@@ -53,3 +58,4 @@ public class AliOSSUtils {
         return url;
     }
 }
+*/
