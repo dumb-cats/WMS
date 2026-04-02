@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * 任务检查点上报请求。
+ */
 @Data
 public class TaskCheckpointRequest {
 

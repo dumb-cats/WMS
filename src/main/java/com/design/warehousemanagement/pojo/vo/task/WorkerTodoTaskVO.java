@@ -3,19 +3,17 @@ package com.design.warehousemanagement.pojo.vo.task;
 import lombok.Data;
 
 /**
- * 工作任务轻量信息。
+ * 工人待办任务列表项。
  */
 @Data
-public class WorkTaskLiteVO {
-    private Long id;
+public class WorkerTodoTaskVO {
+    private Long taskId;
     private String taskNo;
     private Integer taskType;
-    private Long warehouseId;
+    private Integer taskStatus;
+    private Integer priority;
     private Long inboundOrderId;
     private Long modelId;
-    private Long motorcycleId;
     private String vin;
-    private Long sourceBinId;
     private Long targetBinId;
-    private Integer taskStatus;
 }

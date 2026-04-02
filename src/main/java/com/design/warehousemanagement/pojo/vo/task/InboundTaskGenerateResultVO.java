@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * 入库任务生成结果。
+ */
 @Data
 @Builder
 public class InboundTaskGenerateResultVO {

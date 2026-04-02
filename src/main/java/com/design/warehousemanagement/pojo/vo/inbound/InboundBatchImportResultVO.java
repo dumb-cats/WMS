@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * 入库单批量导入执行结果。
+ */
 @Data
 @AllArgsConstructor
 public class InboundBatchImportResultVO {

@@ -5,6 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * 入库单明细创建请求。
+ */
 @Data
 public class InboundOrderDetailCreateRequest {
 

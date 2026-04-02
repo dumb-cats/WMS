@@ -3,6 +3,9 @@ package com.design.warehousemanagement.pojo.vo.task;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * 任务动作执行结果。
+ */
 @Data
 @Builder
 public class TaskActionResultVO {

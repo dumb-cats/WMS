@@ -4,6 +4,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * 入库单落库对象。
+ */
 @Data
 public class InboundOrderInsertVO {
     /** 主键ID */

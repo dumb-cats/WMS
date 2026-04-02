@@ -4,6 +4,9 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * 任务完工请求。
+ */
 @Data
 public class TaskCompleteRequest {
 

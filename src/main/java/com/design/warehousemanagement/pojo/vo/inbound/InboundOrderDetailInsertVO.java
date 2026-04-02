@@ -3,6 +3,9 @@ package com.design.warehousemanagement.pojo.vo.inbound;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * 入库单明细落库对象。
+ */
 @Data
 @Builder
 public class InboundOrderDetailInsertVO {

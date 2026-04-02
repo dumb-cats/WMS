@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "任务管理")
 @RestController
@@ -51,5 +53,18 @@ public class WorkTaskController {
     @PostMapping("/{taskId}/abandon")
     public Result abandonTask(@PathVariable Long taskId, @Valid @RequestBody TaskAbandonRequest request) {
         return Result.success(workTaskService.abandonTask(taskId, request));
+    }
+
+    @Operation(summary = "批量分配待处理任务到工人")
+    @PostMapping("/dispatch")
+    public Result dispatchTasks(@Valid @RequestBody TaskDispatchRequest request) {
+        return Result.success(workTaskService.dispatchTasks(request));
+    }
+
+    @Operation(summary = "查询工人待办任务列表")
+    @GetMapping("/workers/{workerId}/todo")
+    public Result listWorkerTodoTasks(@PathVariable Long workerId,
+                                      @RequestParam(defaultValue = "20") Integer limit) {
+        return Result.success(workTaskService.listWorkerTodoTasks(workerId, limit));
     }
 }

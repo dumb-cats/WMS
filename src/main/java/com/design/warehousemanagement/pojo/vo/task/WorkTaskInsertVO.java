@@ -3,6 +3,9 @@ package com.design.warehousemanagement.pojo.vo.task;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * 工作任务落库对象。
+ */
 @Data
 @Builder
 public class WorkTaskInsertVO {

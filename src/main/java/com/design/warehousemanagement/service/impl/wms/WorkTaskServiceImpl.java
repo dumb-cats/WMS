@@ -11,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
@@ -212,6 +214,65 @@ public class WorkTaskServiceImpl implements WorkTaskService {
                 .taskStatus(4)
                 .message("任务已放弃")
                 .build();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public TaskDispatchResultVO dispatchTasks(TaskDispatchRequest request) {
+        // 工人ID去重，避免同一工人被重复轮询导致分配倾斜。
+        Set<Long> workerIdSet = new LinkedHashSet<>(request.getWorkerIds());
+        if (workerIdSet.isEmpty()) {
+            throw new IllegalArgumentException("workerIds不能为空");
+        }
+
+        List<Long> workerIds = new ArrayList<>(workerIdSet);
+        int limit = request.getDispatchLimit() == null ? 50 : request.getDispatchLimit();
+        List<WorkerTodoTaskVO> candidates = workTaskMapper.findDispatchCandidates(
+                request.getWarehouseId(), request.getMaxPriority(), limit);
+
+        if (candidates.isEmpty()) {
+            return TaskDispatchResultVO.builder()
+                    .requestedCount(limit)
+                    .assignedCount(0)
+                    .skippedCount(0)
+                    .assignedTaskNos(List.of())
+                    .warnings(List.of("没有可分配的待分配任务"))
+                    .build();
+        }
+
+        List<String> assignedTaskNos = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+        int assignedCount = 0;
+        int skippedCount = 0;
+
+        for (int i = 0; i < candidates.size(); i++) {
+            WorkerTodoTaskVO task = candidates.get(i);
+            // 轮询策略：按候选任务顺序平均分配给工人列表。
+            Long workerId = workerIds.get(i % workerIds.size());
+            int updated = workTaskMapper.assignTask(task.getTaskId(), workerId, request.getOperatorId());
+            if (updated > 0) {
+                assignedCount++;
+                assignedTaskNos.add(task.getTaskNo());
+            } else {
+                skippedCount++;
+                warnings.add("任务" + task.getTaskNo() + "分配失败，可能已被其他操作占用");
+            }
+        }
+
+        return TaskDispatchResultVO.builder()
+                .requestedCount(limit)
+                .assignedCount(assignedCount)
+                .skippedCount(skippedCount)
+                .assignedTaskNos(assignedTaskNos)
+                .warnings(warnings)
+                .build();
+    }
+
+    @Override
+    public List<WorkerTodoTaskVO> listWorkerTodoTasks(Long workerId, Integer limit) {
+        // 保护查询窗口，避免一次性拉取过多任务影响接口响应。
+        int safeLimit = limit == null ? 20 : Math.max(1, Math.min(limit, 200));
+        return workTaskMapper.listWorkerTodoTasks(workerId, safeLimit);
     }
 
     private WorkTaskLiteVO mustGetTask(Long taskId) {

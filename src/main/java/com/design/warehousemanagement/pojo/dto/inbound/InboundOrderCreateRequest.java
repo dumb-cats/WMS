@@ -9,6 +9,9 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 新建入库单请求。
+ */
 @Data
 public class InboundOrderCreateRequest {
 
