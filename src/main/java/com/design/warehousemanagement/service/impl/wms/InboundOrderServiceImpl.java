@@ -45,11 +45,11 @@ public class InboundOrderServiceImpl implements InboundOrderService {
         // 生成业务单号并写入主单（主单状态默认草稿）。
         InboundOrderInsertVO order = new InboundOrderInsertVO();
         order.setOrderNo(generateOrderNo());
+        // 当前版本若前端未传仓库ID，默认落到1号仓（单仓部署场景）。
+        order.setWarehouseId(request.getWarehouseId() == null ? 1L : request.getWarehouseId());
         order.setSourceNo(request.getSourceNo());
         order.setOrderType(request.getOrderType());
         order.setSupplierName(request.getSupplierName());
-        order.setContactPerson(request.getContactPerson());
-        order.setContactPhone(request.getContactPhone());
         order.setTotalQuantity(sumPlannedQuantity(request.getDetails()));
         order.setActualQuantity(0);
         order.setOrderStatus(0);
@@ -228,11 +228,13 @@ public class InboundOrderServiceImpl implements InboundOrderService {
             rows.add(InboundOrderDetailInsertVO.builder()
                     .orderId(orderId)
                     .modelId(model.getId())
-                    .modelCode(model.getModelCode())
-                    .modelName(model.getModelName())
-                    .batchNo(detail.getBatchNo())
-                    .suggestedBinCode(detail.getPreferredBinCode())
+                    .motorcycleId(null)
+                    .vin(null)
+                    .targetBinId(null)
                     .plannedQuantity(detail.getPlannedQuantity())
+                    .remark(detail.getBatchNo())
+                    .createBy(SYSTEM_OPERATOR)
+                    .updateBy(SYSTEM_OPERATOR)
                     .build());
         }
         return rows;

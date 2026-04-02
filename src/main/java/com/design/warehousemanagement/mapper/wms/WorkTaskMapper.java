@@ -14,7 +14,7 @@ public interface WorkTaskMapper {
     @Select("SELECT id, order_no, warehouse_id, order_status FROM wms_inbound_order WHERE id = #{orderId} AND dr = 0 LIMIT 1")
     InboundOrderLiteVO findInboundOrderById(@Param("orderId") Long orderId);
 
-    @Select("SELECT id, model_id, motorcycle_id, vin, target_bin_id, detail_status FROM wms_inbound_order_detail WHERE order_id = #{orderId} AND dr = 0")
+    @Select("SELECT id, model_id, motorcycle_id, vin, target_bin_id, detail_status FROM wms_inbound_order_detail WHERE order_id = #{orderId}")
     List<InboundOrderDetailLiteVO> findInboundDetailsByOrderId(@Param("orderId") Long orderId);
 
     @Select("SELECT COUNT(1) FROM wms_work_task WHERE task_type = 1 AND inbound_order_id = #{inboundOrderId} AND model_id = #{modelId} " +

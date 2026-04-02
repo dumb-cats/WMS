@@ -12,6 +12,11 @@ import java.util.List;
 @Data
 public class InboundOrderCreateRequest {
 
+    /**
+     * 目标仓库ID（DDL中为必填字段）。
+     */
+    private Long warehouseId;
+
     private String sourceNo;
 
     @NotNull(message = "orderType不能为空")

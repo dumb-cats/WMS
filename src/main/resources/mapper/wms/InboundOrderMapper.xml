@@ -8,11 +8,10 @@
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO wms_inbound_order (
             order_no,
+            warehouse_id,
             source_no,
             order_type,
             supplier_name,
-            contact_person,
-            contact_phone,
             total_quantity,
             actual_quantity,
             order_status,
@@ -23,11 +22,10 @@
             update_by
         ) VALUES (
             #{orderNo},
+            #{warehouseId},
             #{sourceNo},
             #{orderType},
             #{supplierName},
-            #{contactPerson},
-            #{contactPhone},
             #{totalQuantity},
             #{actualQuantity},
             #{orderStatus},
@@ -43,27 +41,29 @@
         INSERT INTO wms_inbound_order_detail (
             order_id,
             model_id,
-            model_code,
-            model_name,
-            batch_no,
-            suggested_bin_code,
-            planned_quantity,
+            motorcycle_id,
+            vin,
+            target_bin_id,
+            plan_quantity,
             actual_quantity,
             detail_status,
-            dr
+            remark,
+            create_by,
+            update_by
         ) VALUES
         <foreach collection="details" item="d" separator=",">
             (
                 #{d.orderId},
                 #{d.modelId},
-                #{d.modelCode},
-                #{d.modelName},
-                #{d.batchNo},
-                #{d.suggestedBinCode},
+                #{d.motorcycleId},
+                #{d.vin},
+                #{d.targetBinId},
                 #{d.plannedQuantity},
                 0,
                 0,
-                0
+                #{d.remark},
+                #{d.createBy},
+                #{d.updateBy}
             )
         </foreach>
     </insert>
