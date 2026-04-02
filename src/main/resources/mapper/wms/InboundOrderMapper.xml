@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.design.warehousemanagement.mapper.wms.InboundOrderMapper">
+
+    <insert id="insertOrder" parameterType="com.design.warehousemanagement.pojo.vo.inbound.InboundOrderInsertVO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO wms_inbound_order (
+            order_no,
+            warehouse_id,
+            source_no,
+            order_type,
+            supplier_name,
+            total_quantity,
+            actual_quantity,
+            order_status,
+            plan_time,
+            remark,
+            dr,
+            create_by,
+            update_by
+        ) VALUES (
+            #{orderNo},
+            #{warehouseId},
+            #{sourceNo},
+            #{orderType},
+            #{supplierName},
+            #{totalQuantity},
+            #{actualQuantity},
+            #{orderStatus},
+            #{planTime},
+            #{remark},
+            0,
+            #{createBy},
+            #{updateBy}
+        )
+    </insert>
+
+    <insert id="batchInsertDetails">
+        INSERT INTO wms_inbound_order_detail (
+            order_id,
+            model_id,
+            motorcycle_id,
+            vin,
+            target_bin_id,
+            plan_quantity,
+            actual_quantity,
+            detail_status,
+            remark,
+            create_by,
+            update_by
+        ) VALUES
+        <foreach collection="details" item="d" separator=",">
+            (
+                #{d.orderId},
+                #{d.modelId},
+                #{d.motorcycleId},
+                #{d.vin},
+                #{d.targetBinId},
+                #{d.plannedQuantity},
+                0,
+                0,
+                #{d.remark},
+                #{d.createBy},
+                #{d.updateBy}
+            )
+        </foreach>
+    </insert>
+</mapper>
