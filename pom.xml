@@ -75,6 +75,13 @@
             <version>1.2.41</version>
         </dependency>
 
+        <!-- EasyExcel -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>easyexcel</artifactId>
+            <version>3.3.4</version>
+        </dependency>
+
         <!-- OSS SDK -->
         <dependency>
             <groupId>com.aliyun.oss</groupId>
