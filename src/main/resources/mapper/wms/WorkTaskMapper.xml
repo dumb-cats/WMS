@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.design.warehousemanagement.mapper.wms.WorkTaskMapper">
+
+    <insert id="insertWorkTask" parameterType="com.design.warehousemanagement.pojo.vo.task.WorkTaskInsertVO">
+        INSERT INTO wms_work_task (
+            task_no,
+            task_type,
+            warehouse_id,
+            inbound_order_id,
+            model_id,
+            motorcycle_id,
+            vin,
+            target_bin_id,
+            task_status,
+            priority,
+            dr,
+            create_by,
+            update_by
+        ) VALUES (
+            #{taskNo},
+            #{taskType},
+            #{warehouseId},
+            #{inboundOrderId},
+            #{modelId},
+            #{motorcycleId},
+            #{vin},
+            #{targetBinId},
+            #{taskStatus},
+            #{priority},
+            0,
+            #{createBy},
+            #{updateBy}
+        )
+    </insert>
+
+    <update id="updateInboundOrderStatusToPending">
+        UPDATE wms_inbound_order
+        SET order_status = CASE WHEN order_status = 0 THEN 1 ELSE order_status END,
+            update_by = #{operator}
+        WHERE id = #{orderId}
+          AND dr = 0
+    </update>
+
+    <update id="startTask">
+        UPDATE wms_work_task
+        SET task_status = 2,
+            start_time = NOW(),
+            assigned_user_id = CASE WHEN assigned_user_id IS NULL THEN #{operatorId} ELSE assigned_user_id END,
+            last_operator_id = #{operatorId}
+        WHERE id = #{taskId}
+          AND dr = 0
+          AND task_status IN (0,1)
+    </update>
+
+    <insert id="insertCheckpoint">
+        INSERT INTO wms_task_checkpoint (
+            task_id,
+            checkpoint_type,
+            scan_content,
+            expected_content,
+            verify_result,
+            operator_id,
+            device_id,
+            location_info,
+            scan_time,
+            remark
+        ) VALUES (
+            #{taskId},
+            #{checkpointType},
+            #{scanContent},
+            #{expectedContent},
+            #{verifyResult},
+            #{operatorId},
+            #{deviceId},
+            #{locationInfo},
+            #{scanTime},
+            #{remark}
+        )
+    </insert>
+
+    <update id="completeTask">
+        UPDATE wms_work_task
+        SET task_status = 3,
+            complete_time = NOW(),
+            last_operator_id = #{operatorId}
+        WHERE id = #{taskId}
+          AND dr = 0
+          AND task_status = 2
+    </update>
+
+    <update id="abandonTask">
+        UPDATE wms_work_task
+        SET task_status = 4,
+            abandon_reason = #{reason},
+            abandon_time = #{abandonTime},
+            last_operator_id = #{operatorId}
+        WHERE id = #{taskId}
+          AND dr = 0
+          AND task_status IN (0,1,2)
+    </update>
+
+    <update id="updateInventory">
+        UPDATE wms_inventory
+        SET quantity = quantity + #{delta},
+            available_quantity = available_quantity + #{delta},
+            last_inbound_time = #{inboundTime},
+            update_by = #{operator}
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insertInventory">
+        INSERT INTO wms_inventory (
+            warehouse_id,
+            model_id,
+            bin_id,
+            motorcycle_id,
+            quantity,
+            frozen_quantity,
+            available_quantity,
+            last_inbound_time,
+            version,
+            create_by,
+            update_by
+        ) VALUES (
+            #{warehouseId},
+            #{modelId},
+            #{binId},
+            #{motorcycleId},
+            #{quantity},
+            0,
+            #{quantity},
+            #{inboundTime},
+            0,
+            #{operator},
+            #{operator}
+        )
+    </insert>
+
+    <insert id="insertMovement">
+        INSERT INTO wms_inventory_movement (
+            warehouse_id,
+            model_id,
+            motorcycle_id,
+            vin,
+            movement_type,
+            quantity_change,
+            before_quantity,
+            after_quantity,
+            source_bin_id,
+            target_bin_id,
+            task_id,
+            order_no,
+            operator_id,
+            operator_name,
+            movement_time,
+            remark
+        ) VALUES (
+            #{warehouseId},
+            #{modelId},
+            #{motorcycleId},
+            #{vin},
+            1,
+            #{afterQuantity} - #{beforeQuantity},
+            #{beforeQuantity},
+            #{afterQuantity},
+            NULL,
+            #{targetBinId},
+            #{taskId},
+            #{orderNo},
+            #{operatorId},
+            #{operatorName},
+            #{movementTime},
+            #{remark}
+        )
+    </insert>
+
+    <update id="incrementInboundOrderActualQuantity">
+        UPDATE wms_inbound_order
+        SET actual_quantity = actual_quantity + #{quantity},
+            actual_time = #{actualTime},
+            update_by = #{operator}
+        WHERE id = #{orderId}
+          AND dr = 0
+    </update>
+
+    <update id="refreshInboundOrderStatus">
+        UPDATE wms_inbound_order
+        SET order_status = CASE
+                WHEN actual_quantity &gt;= total_quantity THEN 3
+                WHEN actual_quantity &gt; 0 THEN 2
+                ELSE order_status
+            END,
+            update_by = #{operator}
+        WHERE id = #{orderId}
+          AND dr = 0
+    </update>
+</mapper>
