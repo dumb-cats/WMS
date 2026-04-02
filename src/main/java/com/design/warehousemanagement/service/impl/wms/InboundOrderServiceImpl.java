@@ -39,8 +39,10 @@ public class InboundOrderServiceImpl implements InboundOrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public InboundCreateResultVO createOrder(InboundOrderCreateRequest request) {
+        // 入库类型做前置校验，避免非法值落库。
         validateOrderType(request.getOrderType());
 
+        // 生成业务单号并写入主单（主单状态默认草稿）。
         InboundOrderInsertVO order = new InboundOrderInsertVO();
         order.setOrderNo(generateOrderNo());
         order.setSourceNo(request.getSourceNo());
@@ -57,6 +59,7 @@ public class InboundOrderServiceImpl implements InboundOrderService {
         order.setUpdateBy(SYSTEM_OPERATOR);
         inboundOrderMapper.insertOrder(order);
 
+        // 逐条明细校验车型合法性后批量落库。
         List<InboundOrderDetailInsertVO> detailRows = buildDetailRows(order.getId(), request.getDetails());
         inboundOrderMapper.batchInsertDetails(detailRows);
 
@@ -73,6 +76,7 @@ public class InboundOrderServiceImpl implements InboundOrderService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("导入文件不能为空");
         }
+        // 文件导入统一转换为“标准建单请求列表”，后续复用批量建单逻辑。
         List<InboundOrderCreateRequest> orders = parseByEasyExcel(file);
         if (orders.isEmpty()) {
             throw new IllegalArgumentException("导入文件未解析到任何有效数据");
@@ -81,6 +85,7 @@ public class InboundOrderServiceImpl implements InboundOrderService {
     }
 
     private InboundBatchImportResultVO doBatchImport(List<InboundOrderCreateRequest> orders) {
+        // 批量导入策略：逐条处理，失败不影响其他记录，汇总返回失败原因。
         List<InboundCreateResultVO> successOrders = new ArrayList<>();
         List<String> errors = new ArrayList<>();
 
@@ -101,6 +106,7 @@ public class InboundOrderServiceImpl implements InboundOrderService {
     }
 
     private List<InboundOrderCreateRequest> parseByEasyExcel(MultipartFile file) {
+        // 先按文件读取行数据，再按 sourceNo+orderType+supplierName 聚合成入库单。
         List<InboundImportRowDTO> rows = readRows(file);
         Map<String, InboundOrderCreateRequest> orderMap = new LinkedHashMap<>();
 
@@ -108,6 +114,7 @@ public class InboundOrderServiceImpl implements InboundOrderService {
             int row = i + 2;
             InboundImportRowDTO rowData = rows.get(i);
             if (isBlank(rowData.getSupplierName()) && isBlank(rowData.getModelCode())) {
+                // 空白行直接跳过，兼容模板中的空行。
                 continue;
             }
 
@@ -138,6 +145,7 @@ public class InboundOrderServiceImpl implements InboundOrderService {
 
     private List<InboundImportRowDTO> readRows(MultipartFile file) {
         String filename = file.getOriginalFilename();
+        // 根据后缀识别文件类型，统一交给 EasyExcel 解析。
         ExcelTypeEnum excelType = resolveExcelType(filename);
         try {
             return EasyExcel.read(file.getInputStream())
@@ -212,6 +220,7 @@ public class InboundOrderServiceImpl implements InboundOrderService {
     private List<InboundOrderDetailInsertVO> buildDetailRows(Long orderId, List<InboundOrderDetailCreateRequest> details) {
         List<InboundOrderDetailInsertVO> rows = new ArrayList<>(details.size());
         for (InboundOrderDetailCreateRequest detail : details) {
+            // 通过车型编码校验主数据，避免无效车型进入单据明细。
             MotorcycleModelLiteVO model = inboundOrderMapper.findModelByCode(detail.getModelCode());
             if (model == null) {
                 throw new IllegalArgumentException("车型编码不存在或不可用: " + detail.getModelCode());
@@ -240,6 +249,7 @@ public class InboundOrderServiceImpl implements InboundOrderService {
     }
 
     private String generateOrderNo() {
+        // 单号规则：IN + 时间戳 + 4位随机数，查重后返回。
         for (int retry = 0; retry < 8; retry++) {
             String suffix = String.format("%04d", ThreadLocalRandom.current().nextInt(10000));
             String orderNo = "IN" + LocalDateTime.now().format(ORDER_NO_TIME_FORMATTER) + suffix;

@@ -4,6 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.design.warehousemanagement.mapper.wms.WorkTaskMapper">
 
+    <!-- 新增任务：由入库明细转换为待执行任务。 -->
     <insert id="insertWorkTask" parameterType="com.design.warehousemanagement.pojo.vo.task.WorkTaskInsertVO">
         INSERT INTO wms_work_task (
             task_no,
@@ -36,6 +37,7 @@
         )
     </insert>
 
+    <!-- 任务生成后，主单从草稿推进为待入库（若已是更高状态则保持不变）。 -->
     <update id="updateInboundOrderStatusToPending">
         UPDATE wms_inbound_order
         SET order_status = CASE WHEN order_status = 0 THEN 1 ELSE order_status END,
@@ -44,6 +46,7 @@
           AND dr = 0
     </update>
 
+    <!-- 任务开工：仅允许待分配/已分配进入执行中。 -->
     <update id="startTask">
         UPDATE wms_work_task
         SET task_status = 2,
@@ -55,6 +58,7 @@
           AND task_status IN (0,1)
     </update>
 
+    <!-- 记录任务检查点（扫码、定位、设备、校验结果）。 -->
     <insert id="insertCheckpoint">
         INSERT INTO wms_task_checkpoint (
             task_id,
@@ -81,6 +85,7 @@
         )
     </insert>
 
+    <!-- 任务完成：仅执行中的任务允许完工。 -->
     <update id="completeTask">
         UPDATE wms_work_task
         SET task_status = 3,
@@ -91,6 +96,7 @@
           AND task_status = 2
     </update>
 
+    <!-- 任务放弃：支持 0/1/2 -> 4，并记录放弃原因与时间。 -->
     <update id="abandonTask">
         UPDATE wms_work_task
         SET task_status = 4,
@@ -102,6 +108,7 @@
           AND task_status IN (0,1,2)
     </update>
 
+    <!-- 更新库存快照（已有库存记录时走累加）。 -->
     <update id="updateInventory">
         UPDATE wms_inventory
         SET quantity = quantity + #{delta},
@@ -111,6 +118,7 @@
         WHERE id = #{id}
     </update>
 
+    <!-- 插入库存快照（首次入库时创建库存记录）。 -->
     <insert id="insertInventory">
         INSERT INTO wms_inventory (
             warehouse_id,
@@ -139,6 +147,7 @@
         )
     </insert>
 
+    <!-- 追加库存流水（仅追加，不覆盖历史）。 -->
     <insert id="insertMovement">
         INSERT INTO wms_inventory_movement (
             warehouse_id,
@@ -177,6 +186,7 @@
         )
     </insert>
 
+    <!-- 回写入库单实际数量。 -->
     <update id="incrementInboundOrderActualQuantity">
         UPDATE wms_inbound_order
         SET actual_quantity = actual_quantity + #{quantity},
@@ -186,6 +196,7 @@
           AND dr = 0
     </update>
 
+    <!-- 按累计数量刷新主单状态：部分入库 / 已完成。 -->
     <update id="refreshInboundOrderStatus">
         UPDATE wms_inbound_order
         SET order_status = CASE
