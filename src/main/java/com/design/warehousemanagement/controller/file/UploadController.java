@@ -1,3 +1,4 @@
+/*
 package com.design.warehousemanagement.controller.file;
 
 import com.design.warehousemanagement.common.Result;
@@ -12,9 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 
+*/
 /**
  * @author wwp
- */
+ *//*
+
 @Tag(name = "文件流")
 @Log4j2
 @RestController
@@ -32,3 +35,4 @@ public class UploadController {
         return Result.success(url);
     }
 }
+*/
